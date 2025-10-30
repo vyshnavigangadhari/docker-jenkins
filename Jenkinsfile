@@ -15,30 +15,32 @@ pipeline {
 
     stage('Build Image') {
       steps {
-        sh 'docker build -t $DOCKER_HUB_REPO:$IMAGE_TAG .'
+        bat 'docker build -t %DOCKER_HUB_REPO%:%IMAGE_TAG% .'
       }
     }
 
     stage('Login to Docker Hub') {
       steps {
         withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
-          sh 'echo $PASS | docker login -u $USER --password-stdin'
+          bat '''
+          echo %PASS% | docker login -u %USER% --password-stdin
+          '''
         }
       }
     }
 
     stage('Push Image') {
       steps {
-        sh 'docker push $DOCKER_HUB_REPO:$IMAGE_TAG'
+        bat 'docker push %DOCKER_HUB_REPO%:%IMAGE_TAG%'
       }
     }
 
     stage('Tag & Push latest') {
       when { expression { return env.BRANCH_NAME == 'main' || env.GIT_BRANCH == 'main' } }
       steps {
-        sh '''
-          docker tag $DOCKER_HUB_REPO:$IMAGE_TAG $DOCKER_HUB_REPO:latest
-          docker push $DOCKER_HUB_REPO:latest
+        bat '''
+        docker tag %DOCKER_HUB_REPO%:%IMAGE_TAG% %DOCKER_HUB_REPO%:latest
+        docker push %DOCKER_HUB_REPO%:latest
         '''
       }
     }
@@ -46,10 +48,10 @@ pipeline {
 
   post {
     success {
-      echo "✅ Pushed successfully to Docker Hub: $DOCKER_HUB_REPO:$IMAGE_TAG"
+      echo "✅ Successfully pushed image to Docker Hub: ${env.DOCKER_HUB_REPO}:${env.IMAGE_TAG}"
     }
     always {
-      sh 'docker logout || true'
+      bat 'docker logout || echo logout skipped'
     }
   }
 }
